@@ -1,0 +1,25 @@
+.rectangle-selector {
+  position: absolute;
+  border: 1px dashed #000;
+  user-select: none;
+}
+
+.results {
+  user-select: none;
+}
+
+.results > span {
+  position: absolute;
+}
+
+.hidden {
+  display: none;
+}
+
+.selected {
+  color: #0099ff;
+}
+
+.grabbing {
+  cursor: grabbing;
+}
