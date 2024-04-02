@@ -15,12 +15,13 @@ Events.addEvents({
 function mouseDown(event) {
   const elem = event.target;
   if (lettersController.isSelectableElemClicked(elem)) {
+    lettersController.startMoving(event);
+
     // directly pressed the letter
     if (!lettersController.letters.has(elem)) {
       if (!event.ctrlKey) lettersController.clearSelection();
       lettersController.selectOne(elem);
     }
-    lettersController.startMoving(event);
   } else {
     // clicked anywhere but on an item
     lettersController.startSelection(event);
@@ -44,15 +45,9 @@ function mouseUp(event) {
   lettersController.endMoving(event);
   lettersController.endSelection(event);
 
-  console.log(lettersController.wasMoved);
   if (lettersController.wasMoved) {
     lettersController.clearSelection();
   } else {
-    // if (lettersController.letters.size > 1) {
-    //   lettersController.clearSelection();
-    //   lettersController.selectOne(elem);
-    // } else {
-    //   lettersController.unselectOne(elem);
-    // }
+    lettersController.unselectOne(elem);
   }
 }

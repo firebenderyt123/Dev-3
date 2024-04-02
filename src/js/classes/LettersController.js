@@ -15,22 +15,20 @@ class LettersController {
   #selectorElement;
   /** @type {HTMLElement} */
   #container;
-  /** @type {HTMLElement | null} */
-  #clickedElement;
-  /** @type {Set<HTMLElement>} */
+  /** @type {Map<HTMLElement, {delta: number[], canBeUnselected: boolean}>} */
   #letters;
-  /** @type {number[][]} */
-  #lettersDeltas;
+  /** @type {HTMLElement | null} */
+  #lastAddedElem;
 
   /**
    * @param {HTMLElement} resultsElem
    */
   constructor(resultsElem, elem = document.body) {
-    this.#resetSelecting();
-    this.#resetMoving();
+    this.#disableSelecting();
+    this.#disableMoving();
     this.#container = resultsElem;
-    this.#letters = new Set();
-    this.#lettersDeltas = [];
+    this.#letters = new Map();
+    this.#lastAddedElem = null;
     this.#appendSelectorToHTML(elem);
   }
 
@@ -39,11 +37,17 @@ class LettersController {
   }
 
   get wasMoved() {
-    console.log(this.#movingStart, this.#movingEnd);
     return (
       this.#movingStart[0] != this.#movingEnd[0] ||
       this.#movingStart[1] != this.#movingEnd[1]
     );
+  }
+
+  /**
+   * @param {HTMLElement} elem
+   */
+  canBeUnselected(elem) {
+    return this.#letters.get(elem)?.canBeUnselected || false;
   }
 
   /**
@@ -59,7 +63,7 @@ class LettersController {
    * @param {HTMLElement} elem
    */
   unselectOne(elem) {
-    if (this.#letters.has(elem)) {
+    if (this.canBeUnselected(elem)) {
       this.#removeLetter(elem);
     }
   }
@@ -70,7 +74,7 @@ class LettersController {
   startSelection(event) {
     this.#selectionStart = [event.clientX, event.clientY];
     this.#isSelecting = true;
-    this.#resetMoving();
+    this.#disableMoving();
   }
 
   /**
@@ -119,13 +123,17 @@ class LettersController {
     const [x, y] = [event.clientX, event.clientY];
     this.#movingStart = [x, y];
     this.#movingEnd = [x, y];
-    this.#letters.forEach((elem) => {
+    this.#letters.forEach((data, elem) => {
       const rect = elem.getBoundingClientRect();
       const [x0, y0] = [rect.left, rect.top];
-      this.#lettersDeltas.push([x0 - x, y0 - y]);
+      this.#letters.set(elem, {
+        ...data,
+        delta: [x0 - x, y0 - y],
+        canBeUnselected: true,
+      });
     });
     this.#isMoving = true;
-    this.#resetSelecting();
+    this.#disableSelecting();
   }
 
   /**
@@ -136,12 +144,10 @@ class LettersController {
 
     const [x, y] = [event.clientX, event.clientY];
 
-    let i = 0;
-    this.#letters.forEach((elem) => {
-      const [dx, dy] = this.#lettersDeltas[i];
+    this.#letters.forEach((data, elem) => {
+      const [dx, dy] = data.delta;
       elem.style.left = x + dx + "px";
       elem.style.top = y + dy + "px";
-      i++;
     });
   }
 
@@ -151,7 +157,6 @@ class LettersController {
   endMoving(event) {
     if (!this.#isMoving) return;
     this.#movingEnd = [event.clientX, event.clientY];
-    this.#lettersDeltas = [];
     this.#isMoving = false;
   }
 
@@ -163,22 +168,32 @@ class LettersController {
   }
 
   clearSelection() {
-    this.#letters.forEach((elem) => {
+    this.#letters.forEach((_, elem) => {
       this.#letters.delete(elem);
       elem.classList.remove("selected");
     });
   }
 
-  #resetMoving() {
+  #disableMoving() {
     this.#movingStart = [0, 0];
     this.#movingEnd = [0, 0];
     this.#isMoving = false;
   }
 
-  #resetSelecting() {
+  #disableSelecting() {
     this.#selectionStart = [0, 0];
     this.#selectionEnd = [0, 0];
     this.#isSelecting = false;
+  }
+
+  #setCanBeUnselected() {
+    if (!this.#lastAddedElem) return;
+    const data = this.#letters.get(this.#lastAddedElem) ?? {
+      delta: [0, 0],
+      canBeUnselected: true,
+    };
+    this.#letters.set(this.#lastAddedElem, { ...data, canBeUnselected: true });
+    this.#lastAddedElem = null;
   }
 
   /**
@@ -195,7 +210,8 @@ class LettersController {
    * @param {HTMLElement} elem
    */
   #addLetter(elem) {
-    this.#letters.add(elem);
+    this.#lastAddedElem = elem;
+    this.#letters.set(elem, { delta: [0, 0], canBeUnselected: false });
     elem.classList.add("selected");
   }
 
