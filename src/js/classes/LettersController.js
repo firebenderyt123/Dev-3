@@ -13,22 +13,26 @@ class LettersController {
   #isMoving;
   /** @type {HTMLDivElement} */
   #selectorElement;
-  /** @type {HTMLElement} */
-  #container;
-  /** @type {Map<HTMLElement, {delta: number[], canBeUnselected: boolean}>} */
+  /** @type {string} */
+  #elemsSelector;
+  /** @type {"Id" | "Class" | "Tag"} */
+  #elemsSelectorType;
+  /** @type {Map<Element, {delta: number[], canBeUnselected: boolean}>} */
   #letters;
-  /** @type {HTMLElement | null} */
-  #lastAddedElem;
 
   /**
-   * @param {HTMLElement} resultsElem
+   * @param {string} elemsSelector
    */
-  constructor(resultsElem, elem = document.body) {
+  constructor(elemsSelector, elem = document.body) {
     this.#disableSelecting();
     this.#disableMoving();
-    this.#container = resultsElem;
+    this.#elemsSelector = elemsSelector;
+    this.#elemsSelectorType = elemsSelector.includes(".")
+      ? "Class"
+      : elemsSelector.includes("#")
+      ? "Id"
+      : "Tag";
     this.#letters = new Map();
-    this.#lastAddedElem = null;
     this.#appendSelectorToHTML(elem);
   }
 
@@ -89,7 +93,8 @@ class LettersController {
     const y1 = Math.min(this.#selectionStart[1], this.#selectionEnd[1]);
     const y2 = Math.max(this.#selectionStart[1], this.#selectionEnd[1]);
 
-    this.#container.childNodes.forEach((elem) => {
+    const elements = this.#getAllElements();
+    elements.forEach((elem) => {
       const rect = elem.getBoundingClientRect();
       const [x0, y0] = [rect.left, rect.top];
       if (x1 <= x0 && x2 >= x0 && y1 <= y0 && y2 >= y0) {
@@ -146,8 +151,7 @@ class LettersController {
 
     this.#letters.forEach((data, elem) => {
       const [dx, dy] = data.delta;
-      elem.style.left = x + dx + "px";
-      elem.style.top = y + dy + "px";
+      this.#move(elem, x + dx, y + dy);
     });
   }
 
@@ -158,13 +162,24 @@ class LettersController {
     if (!this.#isMoving) return;
     this.#movingEnd = [event.clientX, event.clientY];
     this.#isMoving = false;
+
+    const elems = Array.from(this.#letters.entries()).map(([elem]) => elem);
+    this.#correctElemPositons(elems);
   }
 
   /**
    * @param {HTMLElement | null} elem
    */
   isSelectableElemClicked(elem) {
-    return elem ? elem.classList.contains("selectable") : false;
+    if (!elem) return false;
+
+    if (this.#elemsSelectorType === "Id") {
+      return this.#elemsSelector.slice(1) === elem.id;
+    } else if (this.#elemsSelectorType === "Class") {
+      return elem.classList.contains(this.#elemsSelector.slice(1));
+    } else {
+      return this.#elemsSelector === elem.tagName;
+    }
   }
 
   clearSelection() {
@@ -172,6 +187,10 @@ class LettersController {
       this.#letters.delete(elem);
       elem.classList.remove("selected");
     });
+  }
+
+  #getAllElements() {
+    return Array.from(document.querySelectorAll(this.#elemsSelector));
   }
 
   #disableMoving() {
@@ -186,18 +205,19 @@ class LettersController {
     this.#isSelecting = false;
   }
 
-  #setCanBeUnselected() {
-    if (!this.#lastAddedElem) return;
-    const data = this.#letters.get(this.#lastAddedElem) ?? {
-      delta: [0, 0],
-      canBeUnselected: true,
-    };
-    this.#letters.set(this.#lastAddedElem, { ...data, canBeUnselected: true });
-    this.#lastAddedElem = null;
+  /**
+   * @param {HTMLElement | Element} elem
+   * @param {number} x
+   * @param {number} y
+   */
+  #move(elem, x, y) {
+    if (!("style" in elem)) return;
+    elem.style.left = x + "px";
+    elem.style.top = y + "px";
   }
 
   /**
-   * @param {HTMLElement} elem
+   * @param {Element} elem
    */
   #appendSelectorToHTML(elem) {
     this.#selectorElement = document.createElement("div");
@@ -207,19 +227,54 @@ class LettersController {
   }
 
   /**
-   * @param {HTMLElement} elem
+   * @param {Element} elem
    */
   #addLetter(elem) {
-    this.#lastAddedElem = elem;
     this.#letters.set(elem, { delta: [0, 0], canBeUnselected: false });
     elem.classList.add("selected");
   }
 
   /**
-   * @param {HTMLElement} elem
+   * @param {Element} elem
    */
   #removeLetter(elem) {
     this.#letters.delete(elem);
     elem.classList.remove("selected");
+  }
+
+  /**
+   * @param {Element[]} elements
+   */
+  #correctElemPositons(elements) {
+    const newElemsToMove = [];
+    for (const elem1 of elements) {
+      for (const elem2 of this.#getAllElements()) {
+        if (elem1 === elem2) continue;
+
+        const rect1 = elem1.getBoundingClientRect();
+        const rect2 = elem2.getBoundingClientRect();
+
+        if (this.#isRectOverlay(rect1, rect2)) {
+          const [x, y] = [rect2.left, rect2.top];
+          const [dx, dy] = [rect2.left - rect1.right, 0];
+          this.#move(elem2, x + dx, y + dy);
+          newElemsToMove.push(elem2);
+        }
+      }
+    }
+    if (!!newElemsToMove.length) this.#correctElemPositons(newElemsToMove);
+  }
+
+  /**
+   * @param {DOMRect} rect1
+   * @param {DOMRect} rect2
+   */
+  #isRectOverlay(rect1, rect2) {
+    return !(
+      rect1.right < rect2.left ||
+      rect1.left > rect2.right ||
+      rect1.bottom < rect2.top ||
+      rect1.top > rect2.bottom
+    );
   }
 }

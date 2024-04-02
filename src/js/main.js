@@ -1,7 +1,7 @@
 const root = document.getElementById("root") ?? undefined;
 
 const formController = new FormController(root);
-const lettersController = new LettersController(formController.result);
+const lettersController = new LettersController(".selectable");
 
 Events.addEvents({
   mousedown: mouseDown.bind(this),
