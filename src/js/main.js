@@ -44,6 +44,7 @@ function mouseUp(event) {
   lettersController.endMoving(event);
   lettersController.endSelection(event);
 
+  console.log(lettersController.wasMoved);
   if (lettersController.wasMoved) {
     lettersController.clearSelection();
   } else {

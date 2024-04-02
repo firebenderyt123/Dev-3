@@ -26,12 +26,8 @@ class LettersController {
    * @param {HTMLElement} resultsElem
    */
   constructor(resultsElem, elem = document.body) {
-    this.#selectionStart = [0, 0];
-    this.#selectionEnd = [0, 0];
-    this.#isSelecting = false;
-    this.#movingStart = [0, 0];
-    this.#movingEnd = [0, 0];
-    this.#isMoving = false;
+    this.#resetSelecting();
+    this.#resetMoving();
     this.#container = resultsElem;
     this.#letters = new Set();
     this.#lettersDeltas = [];
@@ -43,6 +39,7 @@ class LettersController {
   }
 
   get wasMoved() {
+    console.log(this.#movingStart, this.#movingEnd);
     return (
       this.#movingStart[0] != this.#movingEnd[0] ||
       this.#movingStart[1] != this.#movingEnd[1]
@@ -73,6 +70,7 @@ class LettersController {
   startSelection(event) {
     this.#selectionStart = [event.clientX, event.clientY];
     this.#isSelecting = true;
+    this.#resetMoving();
   }
 
   /**
@@ -108,6 +106,7 @@ class LettersController {
    * @param {MouseEvent} event
    */
   endSelection(event) {
+    if (!this.#isSelecting) return;
     this.#selectionEnd = [event.clientX, event.clientY];
     this.#isSelecting = false;
     this.#selectorElement.classList.add("hidden");
@@ -125,8 +124,8 @@ class LettersController {
       const [x0, y0] = [rect.left, rect.top];
       this.#lettersDeltas.push([x0 - x, y0 - y]);
     });
-    console.log(this.#lettersDeltas);
     this.#isMoving = true;
+    this.#resetSelecting();
   }
 
   /**
@@ -150,6 +149,7 @@ class LettersController {
    * @param {MouseEvent} event
    */
   endMoving(event) {
+    if (!this.#isMoving) return;
     this.#movingEnd = [event.clientX, event.clientY];
     this.#lettersDeltas = [];
     this.#isMoving = false;
@@ -167,6 +167,18 @@ class LettersController {
       this.#letters.delete(elem);
       elem.classList.remove("selected");
     });
+  }
+
+  #resetMoving() {
+    this.#movingStart = [0, 0];
+    this.#movingEnd = [0, 0];
+    this.#isMoving = false;
+  }
+
+  #resetSelecting() {
+    this.#selectionStart = [0, 0];
+    this.#selectionEnd = [0, 0];
+    this.#isSelecting = false;
   }
 
   /**
