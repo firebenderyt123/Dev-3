@@ -1,6 +1,6 @@
 class LettersController {
   /** @type {HTMLElement[]} */
-  static #allLetters = [];
+  #allLetters = [];
   /** @type {number[]} */
   #selectionStart;
   /** @type {number[]} */
@@ -18,39 +18,15 @@ class LettersController {
   /** @type {Map<HTMLElement, {delta: number[], canBeUnselected: boolean}>} - selected letters */
   #selectedLetters;
 
-  /**
-   * @param {HTMLElement[]} elems
-   */
-  static addManyAllLetters(elems) {
-    LettersController.#allLetters = [
-      ...LettersController.#allLetters,
-      ...elems,
-    ];
-  }
-
-  /**
-   * @param {HTMLElement} elem
-   */
-  static deleteElemAllLetters(elem) {
-    LettersController.#allLetters = LettersController.#allLetters.filter(
-      (element) => elem !== element
-    );
-    elem.remove();
-  }
-
-  static clearLetters() {
-    LettersController.#allLetters = [];
-  }
-
-  static get allLetters() {
-    return LettersController.#allLetters;
-  }
-
   constructor(elem = document.body) {
     this.#disableSelecting();
     this.#disableMoving();
     this.#selectedLetters = new Map();
     this.#appendSelectorToHTML(elem);
+  }
+
+  get allLetters() {
+    return this.#allLetters;
   }
 
   get selectedLetters() {
@@ -62,6 +38,25 @@ class LettersController {
       this.#movingStart[0] != this.#movingEnd[0] ||
       this.#movingStart[1] != this.#movingEnd[1]
     );
+  }
+
+  /**
+   * @param {HTMLElement[]} elems
+   */
+  addManyAllLetters(elems) {
+    this.#allLetters = [...this.#allLetters, ...elems];
+  }
+
+  /**
+   * @param {HTMLElement} elem
+   */
+  deleteElemAllLetters(elem) {
+    this.#allLetters = this.#allLetters.filter((element) => elem !== element);
+    elem.remove();
+  }
+
+  clearLetters() {
+    this.#allLetters = [];
   }
 
   /**
@@ -115,7 +110,7 @@ class LettersController {
 
     const rect1 = new DOMRect(x1, y1, x2 - x1, y2 - y1);
 
-    LettersController.#allLetters.forEach((elem) => {
+    this.#allLetters.forEach((elem) => {
       const rect2 = elem.getBoundingClientRect();
       if (this.#isRectOverlay(rect1, rect2)) {
         this.#addSelectedLetter(elem);
@@ -173,7 +168,7 @@ class LettersController {
       const [dx, dy] = data.delta;
       this.#move(elem, x + dx, y + dy);
       if (x + dx < 0) {
-        LettersController.deleteElemAllLetters(elem);
+        this.deleteElemAllLetters(elem);
       }
     });
   }
@@ -196,7 +191,7 @@ class LettersController {
    * @param {HTMLElement} elem
    */
   isSelectableElemClicked(elem) {
-    return LettersController.#allLetters.includes(elem);
+    return this.#allLetters.includes(elem);
   }
 
   clearSelection() {
@@ -212,7 +207,7 @@ class LettersController {
   correctElemPositons(elements) {
     const newElemsToMove = [];
     for (const elem1 of elements) {
-      for (const elem2 of LettersController.#allLetters) {
+      for (const elem2 of this.#allLetters) {
         if (elem1 === elem2) continue;
 
         const rect1 = elem1.getBoundingClientRect();
@@ -223,7 +218,7 @@ class LettersController {
           const [dx, dy] = [rect2.left - rect1.right, 0];
           this.#move(elem2, x + dx, y + dy);
           if (x + dx < 0) {
-            LettersController.deleteElemAllLetters(elem2);
+            this.deleteElemAllLetters(elem2);
           } else {
             newElemsToMove.push(elem2);
           }

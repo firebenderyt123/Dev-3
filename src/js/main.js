@@ -71,6 +71,6 @@ function formSubmit(event) {
     if (char !== " ") elements.push(span);
   });
 
-  LettersController.addManyAllLetters(elements);
+  lettersController.addManyAllLetters(elements);
   lettersController.correctElemPositons(elements);
 }
