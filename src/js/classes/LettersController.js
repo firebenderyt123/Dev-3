@@ -113,10 +113,11 @@ class LettersController {
     const y1 = Math.min(this.#selectionStart[1], this.#selectionEnd[1]);
     const y2 = Math.max(this.#selectionStart[1], this.#selectionEnd[1]);
 
+    const rect1 = new DOMRect(x1, y1, x2 - x1, y2 - y1);
+
     LettersController.#allLetters.forEach((elem) => {
-      const rect = elem.getBoundingClientRect();
-      const [x0, y0] = [rect.left, rect.top];
-      if (x1 <= x0 && x2 >= x0 && y1 <= y0 && y2 >= y0) {
+      const rect2 = elem.getBoundingClientRect();
+      if (this.#isRectOverlay(rect1, rect2)) {
         this.#addSelectedLetter(elem);
       } else {
         this.#removeSelectedLetter(elem);
