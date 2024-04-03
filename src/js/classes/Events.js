@@ -1,6 +1,6 @@
 class Events {
-  /** @type {{[key: string]: (event: Event) => void}} */
-  static #events;
+  /** @type {(Document | HTMLElement | string | EventListenerOrEventListenerObject)[][]} */
+  static #events = [];
 
   static get events() {
     return this.#events;
@@ -10,16 +10,32 @@ class Events {
    * @param {{ [key: string]: (event: Event) => void; }} events
    */
   static addEvents(events) {
-    this.#events = events;
-    Object.keys(this.#events).forEach((key) => {
-      document.addEventListener(key, this.#events[key]);
+    Object.keys(events).forEach((key) => {
+      this.#events.push([document, key, events[key]]);
+      document.addEventListener(key, events[key]);
     });
   }
 
+  /**
+   * @param {HTMLElement} elem
+   * @param {string} type
+   * @param {EventListenerOrEventListenerObject} event
+   */
+  static addEvent(elem, type, event) {
+    this.#events.push([elem, type, event]);
+    elem.addEventListener(type, event);
+  }
+
   static removeEvents() {
-    Object.keys(this.#events).forEach((key) => {
-      document.removeEventListener(key, this.#events[key]);
+    this.#events.forEach((event) => {
+      if (
+        typeof event[0] === "object" &&
+        "removeEventListener" in event[0] &&
+        typeof event[1] === "string" &&
+        typeof event[2] === "function"
+      )
+        event[0].removeEventListener(event[1], event[2]);
     });
-    this.#events = {};
+    this.#events = [];
   }
 }

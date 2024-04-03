@@ -33,20 +33,17 @@ class FormController {
 
     elem.appendChild(this.#form);
     elem.appendChild(this.#result);
-    this.#addEvents();
+  }
+
+  get form() {
+    return this.#form;
+  }
+
+  get input() {
+    return this.#input;
   }
 
   get result() {
     return this.#result;
-  }
-
-  #addEvents() {
-    this.#form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      this.#result.innerHTML = this.#input.value
-        .split("")
-        .map((l) => `<span class="selectable">${l}</span>`)
-        .join("");
-    });
   }
 }
